@@ -83,3 +83,7 @@ _✨ 利用 QQ 机器人复刻 计算器：游戏 ✨_
 ### 效果图
 
 ![](https://github.com/Yurchiu/nonebot-plugin-calc-game/blob/master/example.png)
+
+## 📄 许可证
+
+本项目使用 MIT 许可证开源
