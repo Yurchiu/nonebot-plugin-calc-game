@@ -62,7 +62,7 @@ _✨ 利用 QQ 机器人复刻 计算器：游戏 ✨_
 
 打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot]` 部分追加写入
 
-    plugins = ["nonebot_plugin_calc-game"]
+    plugins = ["nonebot_plugin_calc_game"]
 
 </details>
 
