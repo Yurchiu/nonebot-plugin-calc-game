@@ -24,7 +24,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "calc game",
         "author": "Yurchiu <Yurchiu@outlook.com>",
-        "version": "0.0.1",
+        "version": "0.0.2",
     },
 )
 
