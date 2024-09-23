@@ -79,3 +79,7 @@ _✨ 利用 QQ 机器人复刻 计算器：游戏 ✨_
 | `calc [num]` | 群员 | 否 | 群聊 | 抽取指定谜题 |
 | `calc 帮助` | 群员 | 否 | 群聊 | 发送帮助内容 |
 | `calc 结束` | 群员 | 否 | 群聊 | 结束当前谜题 |
+
+### 效果图
+
+![](https://github.com/Yurchiu/nonebot-plugin-calc-game/blob/master/example.png)
