@@ -12,7 +12,7 @@ _✨ 利用 QQ 机器人复刻 计算器：游戏 ✨_
 
 
 <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/owner/nonebot-plugin-calc-game.svg" alt="license">
+    <img src="https://img.shields.io/github/license/Yurchiu/nonebot-plugin-calc-game.svg" alt="license">
 </a>
 <a href="https://pypi.python.org/pypi/nonebot-plugin-calc-game">
     <img src="https://img.shields.io/pypi/v/nonebot-plugin-calc-game.svg" alt="pypi">
