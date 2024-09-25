@@ -14,7 +14,7 @@ from nonebot import logger
 
 __plugin_meta__ = PluginMetadata(
     name="计算器：游戏",
-    description="这是利用 QQ 机器人复刻 计算器：游戏 的一个插件。游戏玩法：通过给出的操作方式由当前数字达到计算目标。分步直接发送“操作方式”中的内容。各操作如有负号均保留。数字最多八位。",
+    description="这是利用 QQ 机器人复刻 计算器：游戏 的一个插件。通过给出的操作方式由当前数字达到计算目标。",
     usage="/calc [num|帮助|结束] 如果带 num 参数表示抽取指定谜题，否则为随机抽取。",
     type="application",
     homepage="https://github.com/Yurchiu/nonebot-plugin-calc-game",
@@ -23,7 +23,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "calc game",
         "author": "Yurchiu <Yurchiu@outlook.com>",
-        "version": "0.0.4",
+        "version": "0.0.5",
     },
 )
 
@@ -191,7 +191,7 @@ calcData = [
     [158, 9, 4, 34, "*6", "inv10", "<<"],
     [159, 872, 8, 0, "push8", "88=>34", "inv10", "<<"],
     [160, 33, 5, 5, "*7", "+8", "-9", "*2", "inv10"],
-    [161, 23, 6, 12, "*5", "sum", "store", "inv10"],
+    [161, 23, 4, 12, "*5", "sum", "store", "inv10"],
     [162, 1991, 4, 1, "store", "inv10"],
     [163, 26, 4, 12, "<<", "sum", "store", "inv10"],
     [164, 48, 6, 51, "+6", "*3", "inv10", "rev", "4=>6"],
@@ -205,10 +205,23 @@ calcData = [
     [172, 150, 4, 525, "+1", "push6", "push7", "/2"],
     [173, 212, 4, 301, "push10", "-2", "push3"],
     [174, 13, 4, 99, "sum", "mir", "inv10"],
-    [175, 822, 5, 25, "mir", "push5", "store", "<<"]
-]
+    [175, 822, 5, 25, "mir", "push5", "store", "<<"],
+    [176, 516, 4, 45, "+10", "mir", "rev"],
+    [177, 212, 4, 238, "28=>21", "-5", "inv10", "shift>"],
+    [178, 90, 5, 58, "*6", "inv10", "shift>"],
+    [179, 500, 5, 189, "+8", "*4", "push9", "inv10", "7=>0"], # 189 756 56 569 577 500
+    [180, 321, 4, 234, "push9", "+9", "53=>32"],
+    [181, 123, 4, 333, "push1", "push3", "/2", "[+]1"],
+    [182, 777, 3, 613, "push5", "*2", "+3", "rev", "inv10"],
+    [183, 550, 7, 60, "+5", "*5", "push2", "inv10"], # 60 65 652 290 810 90 902 550
+    [184, 4321, 5, 1234, "24=>13", "12=>32", "13=>21", "23=>32", "23=>43"],
+    [185, 750, 6, 4, "+6", "push4", "*3", "inv10"], # 4 12 124 372 738 744 750
+    [186, 3507, 6, 3002, "push7", "3=>5", "inv10", "shift>"], # 3002 30 50 507 750 350 3507
+    [187, 21, 3, 0, "+15", "sum"],
+    [188, 1, 3, 20, "cut1", "*5", "+1"]
+]   
 
-totalData = 175
+totalData = 188
 
 uTrans = {
     167: 1,
@@ -219,7 +232,15 @@ uTrans = {
     172: 1,
     173: 1,
     174: 2,
-    175: 2
+    175: 2,
+    176: 2,
+    179: 1,
+    180: 1,
+    181: 1,
+    182: 1,
+    183: 2,
+    185: 2,
+    186: 1
 }
 
 dTrans = {
@@ -231,15 +252,23 @@ dTrans = {
     172: 4,
     173: 4,
     174: 4,
-    175: 4
+    175: 4,
+    176: 4,
+    179: 4,
+    180: 4,
+    181: 4,
+    182: 4,
+    183: 4,
+    185: 4,
+    186: 5
 }
 
-helpMsg = f"""通过给出的操作方式由当前数字达到计算目标。分步直接发送“操作方式”中的内容。各操作如有负号均保留。数字最多八位（包括负号）。
+helpMsg = f"""通过给出的操作方式由当前数字达到计算目标，分步直接发送“操作方式”中的内容。各操作如有负号均保留，数字最多八位，负号放在最前面。
 
 +?, -?, *?, /?, ^?：加减乘除和乘方操作。
 <<：删除末位数码，删空则置为 0。
 push?：末尾插入数字。
-?=>?：子串替换。
+?=>?：对应数字替换。
 sort>, sort<：分别为数码从大到小，从小到大排序。
 +/-：正负数转换。
 rev：颠倒数码。
@@ -250,6 +279,7 @@ mir：将数码颠倒，并插入末尾。如 12 变为 1221。
 store：存储当前数字，并添加或更改一个操作方式 stored?，不消耗步数。
 stored?：释放存储数字（同 push）。
 inv10：10 减去每个数码，0 数码仍为 0。如 620 使用 inv10 变为 480。
+cut?：对应数字删除，补足数字。
 
 如果数字上下方带有 = ，则为传送门。下方带 = 的数字消失，加到上方带 = 的数字上面，进位并补足数字，持续操作。教程关 168。"""
 
@@ -282,6 +312,7 @@ __MIR__ = 16
 __MDF__ = 17
 __STE__ = 18
 __INV__ = 19
+__CUT__ = 20
 
 def judgeType(text):
     if type(text) != str:
@@ -324,6 +355,8 @@ def judgeType(text):
         return __STE__
     elif text == "inv10":
         return __INV__
+    elif "cut" in text:
+        return __CUT__
 
 def sendPic(text,title=""):
     font_size = 50
@@ -362,7 +395,7 @@ def outCUROPT(opts):
 
 def handleTrans(pos):
     outPut = ""
-    length = 19
+    length = 20
 
     while length > 0:
         length -= 1
@@ -372,7 +405,7 @@ def handleTrans(pos):
             outPut += " "
     return outPut
 
-def desolveTrans(number):
+def resolveTrans(number):
     nowId = curId[curGroup]
     if not(nowId in uTrans):
         return number
@@ -392,7 +425,7 @@ def desolveTrans(number):
         
         start = down
         while start < length:
-            number[-down] = number[-down - 1]
+            number[-start] = number[-start - 1]
             start += 1
 
         number[-length] = 0
@@ -406,10 +439,17 @@ def desolveTrans(number):
 
         number = temp
 
+        logger.info(number)
+
     return number
 
 def display(number):
-    outPut = ['_', '_', '_', '_', '_', '_', '_', '_']
+    outPut = [' ', '0', '0', '0', '0', '0', '0', '0', '0']
+
+    if number < 0:
+        outPut[0] = "-"
+        number -= 2 * number
+
     number = list(str(number))
 
     length = len(number)
@@ -474,11 +514,11 @@ async def _(groupevent: GroupMessageEvent, args: Message = CommandArg()):
         initMsg = f"当前数字：{display(curNum[curGroup])}"
 
     initMsg += f"""
-计算目标：{curTar[curGroup]}
-剩余步数：{curStep[curGroup]}
-操作方式：{outCUROPT(CUROPT[curGroup])}
+计算目标：{display(curTar[curGroup])}
+剩余步数： {curStep[curGroup]}
+操作方式： {outCUROPT(CUROPT[curGroup])}
 
-下划线表示空位，共八位。查看帮助请使用 /calc 帮助，结束游戏请使用 /calc 结束，指定关卡请使用 /calc 数字。"""
+查看帮助请使用 /calc 帮助，结束游戏请使用 /calc 结束，指定关卡请使用 /calc [数字]。"""
 
     await Calc.send(sendPic(initMsg, title=f"谜题 #{curId[curGroup]}"))
 
@@ -520,6 +560,7 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
             curNum[curGroup] //= 10
 
         elif optType == __PUH__:
+            NumInOpt = opt.split("push")
             curNum[curGroup] = str(curNum[curGroup]) + str(NumInOpt[0])
             curNum[curGroup] = int(curNum[curGroup])
 
@@ -659,9 +700,14 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
             temp = ''.join(temp)
             curNum[curGroup] = sign * int(temp)
 
+        elif optType == __CUT__:
+            NumInOpt = opt.split("cut")
+            curNum[curGroup] = str(curNum[curGroup]).replace(str(NumInOpt[1]), "")
+            curNum[curGroup] = int(curNum[curGroup])
+
         status = ""
 
-        if len(str(curNum[curGroup])) > 8:
+        if len(str(getNumber(str(curNum[curGroup]))[0])) > 8:
             NOTGAME[curGroup] = True
             status += "当前数字超过八位，游戏结束！"
             await Calc.finish(status)
@@ -669,7 +715,7 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
         if curId[curGroup] in uTrans:
             status += f"{handleTrans(uTrans[curId[curGroup]])}\n传送之前：{display(curNum[curGroup])}\n{handleTrans(dTrans[curId[curGroup]])}\n"
 
-        curNum[curGroup] = desolveTrans(curNum[curGroup])
+        curNum[curGroup] = resolveTrans(curNum[curGroup])
 
         if curId[curGroup] in uTrans:
             status += f"{handleTrans(uTrans[curId[curGroup]])}\n当前数字：{display(curNum[curGroup])}\n{handleTrans(dTrans[curId[curGroup]])}"
@@ -677,9 +723,9 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
             status += f"当前数字：{display(curNum[curGroup])}"
 
         status += f"""
-计算目标：{curTar[curGroup]}
-剩余步数：{curStep[curGroup]}
-操作方式：{outCUROPT(CUROPT[curGroup])}"""
+计算目标：{display(curTar[curGroup])}
+剩余步数： {curStep[curGroup]}
+操作方式： {outCUROPT(CUROPT[curGroup])}"""
 
         if curNum[curGroup] == curTar[curGroup]:
             NOTGAME[curGroup] = True
