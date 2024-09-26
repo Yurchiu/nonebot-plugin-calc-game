@@ -15,7 +15,7 @@ from nonebot import logger
 __plugin_meta__ = PluginMetadata(
     name="计算器：游戏",
     description="这是利用 QQ 机器人复刻 计算器：游戏 的一个插件。通过给出的操作方式由当前数字达到计算目标。",
-    usage="/calc [num|帮助|结束] 如果带 num 参数表示抽取指定谜题，否则为随机抽取。",
+    usage="/calc [number|帮助|结束]",
     type="application",
     homepage="https://github.com/Yurchiu/nonebot-plugin-calc-game",
     config=None,
@@ -23,7 +23,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "calc game",
         "author": "Yurchiu <Yurchiu@outlook.com>",
-        "version": "0.0.5",
+        "version": "0.0.6",
     },
 )
 
@@ -218,10 +218,16 @@ calcData = [
     [185, 750, 6, 4, "+6", "push4", "*3", "inv10"], # 4 12 124 372 738 744 750
     [186, 3507, 6, 3002, "push7", "3=>5", "inv10", "shift>"], # 3002 30 50 507 750 350 3507
     [187, 21, 3, 0, "+15", "sum"],
-    [188, 1, 3, 20, "cut1", "*5", "+1"]
+    [188, 1, 3, 20, "cut1", "*5", "+1"],
+    [189, 2, 3, 33, "cut1", "+3", "*3"],
+    [190, 6, 4, 4454, "cut4", "+2", "+4", "<<"],
+    [191, 72, 3, 6996, "+3", "cut9"],
+    [192, 15, 3, 12345, "cut1", "/3"],
+    [193, 2, 5, 99999, "cut1", "9=>3", "3=>1", "-8"],
+    [194, 123, 2, 10203, "del"]
 ]   
 
-totalData = 188
+totalData = 194
 
 uTrans = {
     167: 1,
@@ -263,25 +269,30 @@ dTrans = {
     186: 5
 }
 
-helpMsg = f"""通过给出的操作方式由当前数字达到计算目标，分步直接发送“操作方式”中的内容。各操作如有负号均保留，数字最多八位，负号放在最前面。
+specialOpt = ["del"]
 
-+?, -?, *?, /?, ^?：加减乘除和乘方操作。
-<<：删除末位数码，删空则置为 0。
-push?：末尾插入数字。
-?=>?：对应数字替换。
-sort>, sort<：分别为数码从大到小，从小到大排序。
-+/-：正负数转换。
-rev：颠倒数码。
-sum：所有数码相加。
-<shift，shift>：分别为左右移动数字。如 123 变为 231。
-mir：将数码颠倒，并插入末尾。如 12 变为 1221。
-[?]?：以中括号内规则，更改所有操作数。如使用 [+]1 将 *2 操作变为 *3。
-store：存储当前数字，并添加或更改一个操作方式 stored?，不消耗步数。
-stored?：释放存储数字（同 push）。
-inv10：10 减去每个数码，0 数码仍为 0。如 620 使用 inv10 变为 480。
-cut?：对应数字删除，补足数字。
+helpMsg = f"""通过给出的操作方式由当前数字达到计算目标，分步直接发送给定的“操作方式”。操作后负数保留负号，数字最多八位，负号放在最前面。
 
-如果数字上下方带有 = ，则为传送门。下方带 = 的数字消失，加到上方带 = 的数字上面，进位并补足数字，持续操作。教程关 168。"""
+# 和 ? 表示数字。# 表示谜题已给定，? 表示不确定。
+
++#, -#, *#, /#, ^# 加减乘除和乘方操作。除为向下整除。
+<< 删除末位数码，删空则置为 0。
+push# 末尾插入数字。
+#=># 对应数字替换。
+sort>, sort< 分别为数码从大到小，从小到大排序。
++/- 正负数转换。
+rev 颠倒数码。
+sum 所有数码相加。
+<shift，shift> 分别为左右移动数码。如 123 使用 <shift 变为 231。
+mir 颠倒数码且插入末尾。如 12 变为 1221。
+[#]# 第一个 # 表示运算符。以中括号内规则，更改所有操作数。如使用 [+]1 将 *2 操作变为 *3。
+store 存储当前数字，并添加或更改一个操作方式 stored?，不消耗步数。
+stored? 释放存储数字（同 push）。? 的值由操作 store 决定。
+inv10 10 减去每个数码，0 数码仍为 0。如 620 使用 inv10 变为 480。
+cut# 对应数字删除，补足数字。
+del? 删除任意数字。? 由你决定，1 表示个位，2 表示十位，以此类推。教程关 194。
+
+如果数字上下方带有 =，则为传送门。下方带 = 的数字消失，加到上方带 = 的数字上面，进位并补足数字，持续操作。教程关 168。"""
 
 CUROPT = {}
 NOTGAME = {}
@@ -289,8 +300,7 @@ curNum = {}
 curTar = {}
 curStep = {}
 curId = {}
-
-global curGroup
+curGroup = 0
 
 __ERR__ = -1
 __ADD__ = 1
@@ -313,9 +323,10 @@ __MDF__ = 17
 __STE__ = 18
 __INV__ = 19
 __CUT__ = 20
+__DEL__ = 21
 
 def judgeType(text):
-    if type(text) != str:
+    if (type(text) != str) or (" " in text):
         return __ERR__
     elif text[0] == "+" and text != "+/-":
         return __ADD__
@@ -357,8 +368,10 @@ def judgeType(text):
         return __INV__
     elif "cut" in text:
         return __CUT__
+    elif "del" in text:
+        return __DEL__
 
-def sendPic(text,title=""):
+def sendPic(text, title=""):
     font_size = 50
     txt2img = Txt2Img()
     txt2img.set_font_size(font_size)
@@ -373,13 +386,19 @@ def is_notInGame(groupevent: GroupMessageEvent) -> bool:
         NOTGAME[curGroup] = True
     return NOTGAME[curGroup]
 
+def checkSpecial(text):
+    for i in specialOpt:
+        if i in text:
+            return True
+    return False
+
 def checkOpt(groupevent: GroupMessageEvent, event: Event) -> bool:
     global curGroup
     curGroup = groupevent.group_id
 
     if not(curGroup in CUROPT):
         CUROPT[curGroup] = []
-    return (event.get_plaintext() in CUROPT[curGroup]) and (not is_notInGame(groupevent))
+    return ((event.get_plaintext() in CUROPT[curGroup]) or checkSpecial(event.get_plaintext())) and (not is_notInGame(groupevent))
 
 def getNumber(string):
     a = []
@@ -391,6 +410,7 @@ def outCUROPT(opts):
     a = ""
     for i in opts:
         a = a + " " + i
+    a = a.replace("del", "del?")
     return a[1:]
 
 def handleTrans(pos):
@@ -501,7 +521,6 @@ async def _(groupevent: GroupMessageEvent, args: Message = CommandArg()):
         NOTGAME[curGroup] = True
         await Calc.finish(f"谜题编号不在 1~{totalData} 内！")
 
-
     curId[curGroup] = choice[0]
     curTar[curGroup] = choice[1]
     curStep[curGroup] = choice[2]
@@ -538,35 +557,38 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
     curGroup = groupevent.group_id
 
     opt = event.get_plaintext()
-    if opt in CUROPT[curGroup]:
+    logger.info(opt)
+    if (opt in CUROPT[curGroup]) or checkSpecial(opt):
         curStep[curGroup] -= 1
         optType = judgeType(opt)
-        NumInOpt = getNumber(opt)
+        numInOpt = getNumber(opt)
+
+
 
 
         if optType == __ADD__:
-            curNum[curGroup] += NumInOpt[0]
+            curNum[curGroup] += numInOpt[0]
 
         elif optType == __MNS__:
-            curNum[curGroup] -= NumInOpt[0]
+            curNum[curGroup] -= numInOpt[0]
 
         elif optType == __MUL__:
-            curNum[curGroup] *= NumInOpt[0]
+            curNum[curGroup] *= numInOpt[0]
 
         elif optType == __DIV__:
-            curNum[curGroup] //= NumInOpt[0]
+            curNum[curGroup] //= numInOpt[0]
 
         elif optType == __DED__:
             curNum[curGroup] //= 10
 
         elif optType == __PUH__:
-            NumInOpt = opt.split("push")
-            curNum[curGroup] = str(curNum[curGroup]) + str(NumInOpt[0])
+            numInOpt = opt.split("push")
+            curNum[curGroup] = str(curNum[curGroup]) + str(numInOpt[1])
             curNum[curGroup] = int(curNum[curGroup])
 
         elif optType == __REP__:
-            NumInOpt = opt.split("=>")
-            curNum[curGroup] = str(curNum[curGroup]).replace(str(NumInOpt[0]), str(NumInOpt[1]))
+            numInOpt = opt.split("=>")
+            curNum[curGroup] = str(curNum[curGroup]).replace(str(numInOpt[0]), str(numInOpt[1]))
             curNum[curGroup] = int(curNum[curGroup])
 
         elif optType == __SOT__:
@@ -581,13 +603,13 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
             curNum[curGroup] = int(curNum[curGroup])
 
         elif optType == __POW__:
-            curNum[curGroup] **= NumInOpt[0]
+            curNum[curGroup] **= numInOpt[0]
 
         elif optType == __PNR__:
             curNum[curGroup] -= curNum[curGroup] * 2
 
         elif optType == __MUN__:
-            curNum[curGroup] *= (- NumInOpt[0])
+            curNum[curGroup] *= (- numInOpt[0])
 
         elif optType == __REV__:
             if curNum[curGroup] < 0:
@@ -664,10 +686,6 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
                     CUROPT[curGroup][curOrder] = "push" + str(oldNum)
                 elif judgeType(CUROPT[curGroup][curOrder]) == __POW__:
                     CUROPT[curGroup][curOrder] = "^" + str(oldNum)
-                elif judgeType(CUROPT[curGroup][curOrder]) == __MUN__:
-                    if optModifyType == __ADD__:
-                        oldNum -= optModifyNum * 2
-                    CUROPT[curGroup][curOrder] = "*-" + str(oldNum)
 
                 curOrder += 1
 
@@ -683,7 +701,7 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
                 else:
                     CUROPT[curGroup].append("stored" + str(curNum[curGroup]))
             else:
-                curNum[curGroup] = str(curNum[curGroup]) + str(NumInOpt[0])
+                curNum[curGroup] = str(curNum[curGroup]) + str(numInOpt[0])
                 curNum[curGroup] = int(curNum[curGroup])
 
         elif optType == __INV__:
@@ -701,9 +719,28 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
             curNum[curGroup] = sign * int(temp)
 
         elif optType == __CUT__:
-            NumInOpt = opt.split("cut")
-            curNum[curGroup] = str(curNum[curGroup]).replace(str(NumInOpt[1]), "")
+            numInOpt = opt.split("cut")
+            curNum[curGroup] = str(curNum[curGroup]).replace(str(numInOpt[1]), "")
             curNum[curGroup] = int(curNum[curGroup])
+
+        elif optType == __DEL__:
+            if opt == "del":
+                curStep[curGroup] += 1
+                await Calc.finish(f"请指明删除何处！")
+            elif numInOpt == []:
+                curStep[curGroup] += 1
+                await Calc.finish(f"操作 {opt} 不合法！")
+            elif not(1 <= numInOpt[0] <= len(str(getNumber(str(curNum[curGroup]))[0]))):
+                curStep[curGroup] += 1
+                await Calc.finish(f"操作 {opt} 超出范围！")
+            else:
+                curNum[curGroup] = list(str(curNum[curGroup]))
+                curNum[curGroup][-numInOpt[0]] = ''
+                curNum[curGroup] = "".join(curNum[curGroup])
+                curNum[curGroup] = int(curNum[curGroup])
+
+
+
 
         status = ""
 
