@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-calc-game"
-version = "0.2.0"
+version = "0.2.1"
 description = "这是利用 QQ 机器人复刻 计算器：游戏 的一个插件。通过给出的操作方式由当前数字达到计算目标。"
 authors = ["Yurchiu"]
 license = "MIT"
