@@ -24,7 +24,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "calc game",
         "author": "Yurchiu <Yurchiu@outlook.com>",
-        "version": "0.2.1",
+        "version": "0.2.2",
     },
 )
 
@@ -742,6 +742,8 @@ def judgeHelp(userCommand):
         return helpMsg[20]
     elif optType == __LOK__:
         return helpMsg[21]
+    else:
+        return ""
 
 Calc = on_command("calc", block=True, priority=111)
 
@@ -1204,7 +1206,7 @@ async def handleOpt(groupevent: GroupMessageEvent, event: Event):
         if curId[curGroup] in uTrans:
             status += f"{handleTrans(uTrans[curId[curGroup]])}\n当前数字：{display(curNum[curGroup])}\n{handleTrans(dTrans[curId[curGroup]])}"
         elif curLock[curGroup] != -1:
-            status += f"当前数字：{display(curNum[curGroup])}\n{handleTrans(curLock[curGroup], char="*")}"
+            status += f"当前数字：{display(curNum[curGroup])}\n{handleTrans(curLock[curGroup], char='*')}"
         else:
             status += f"当前数字：{display(curNum[curGroup])}"
 
