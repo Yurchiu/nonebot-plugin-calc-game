@@ -129,6 +129,8 @@ def judgeOpt(string) -> int:
 
 
 def judgeHelp(string):
+    if string[0] == "(" and ")" in string:
+        string += "1"
     optType = judgeOpt(string)
     if optType == ADD or optType == SUB or optType == MUL or optType == DIV or optType == POW or optType == MULNEG:
         return gameData.helpMsg[0]
@@ -197,6 +199,9 @@ class gamePlay:
         self.whenLock = -1
 
         self.hasTrans = False
+        self.uTrans = -1
+        self.dTrans = -1
+        self.preTrans = ""
         if Id in gameData.uTrans:
             self.hasTrans = True
             self.uTrans = gameData.uTrans[Id]

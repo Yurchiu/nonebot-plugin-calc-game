@@ -28,7 +28,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "calc game",
         "author": "Yurchiu <Yurchiu@outlook.com>",
-        "version": "1.0.0",
+        "version": "1.0.1",
     },
 )
 
@@ -47,13 +47,15 @@ def disNum(number):
         start += 1
     return "".join(outPut)
 
-def disTrans(pos, char="="):
+def disTrans(pos1, pos2 = -1):
     outPut = ""
     length = 20
     while length > 0:
         length -= 1
-        if length == pos:
-            outPut += char
+        if length == pos1:
+            outPut += "="
+        elif length == pos2:
+            outPut += "*"
         else:
             outPut += " "
     return outPut
@@ -98,7 +100,6 @@ async def _(state: T_State, result: Arparma = AlconnaMatches()):
         GAME = gamePlay.gamePlay(userNum)
 
     text = gameData.startFormat.format(disNum(GAME.curNum), disNum(GAME.curTar), GAME.curStep, disOpt(GAME.curOpt))
-
     if GAME.curId in gameData.uTrans:
         text = gameData.startTransFormat.format(
             disTrans(GAME.uTrans), disNum(GAME.curNum), disTrans(GAME.dTrans),
@@ -135,10 +136,15 @@ async def _(state: T_State, userOpt: str = ArgPlainText()):
             userType = GAME.hasOption(userOpt)
             GAME.run(userType, tools.getNumber(userOpt))
             text = gameData.midFormat.format(disNum(GAME.curNum), disNum(GAME.curTar), GAME.curStep, disOpt(GAME.curOpt))
+            if GAME.curLock != -1:
+                text = gameData.midLockFormat.format(
+                    disNum(GAME.curNum), disTrans(GAME.dTrans, GAME.curLock),
+                    disNum(GAME.curTar), GAME.curStep, disOpt(GAME.curOpt)
+                )
             if GAME.curId in gameData.uTrans:
                 text = gameData.midTransFormat.format(
                     GAME.preTrans,
-                    disTrans(GAME.uTrans), disNum(GAME.curNum), disTrans(GAME.dTrans),
+                    disTrans(GAME.uTrans), disNum(GAME.curNum), disTrans(GAME.dTrans, GAME.curLock),
                     disNum(GAME.curTar), GAME.curStep, disOpt(GAME.curOpt)
                 )
             raw = tools.pictureGen(text)
