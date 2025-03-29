@@ -174,3 +174,6 @@ pyrightconfig.json
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+.idea/*
+nonebot_plugin_calc_game/.idea/*
